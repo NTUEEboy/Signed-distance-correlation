@@ -1,0 +1,91 @@
+function [sign, dependency] = GIC(x,y,type)
+[d_x, d_y] = increment(x,y);
+
+
+switch type
+    case 'Pearson'
+        sign = corr(d_x,d_y);
+        dependency = distcor(x,y,'Pearson');
+    case 'Spearman'
+        sign = corr(d_x,d_y,'Type','Spearman');
+        dependency = distcor(x,y,'Spearman');
+end
+
+end
+
+function [d_x, d_y] = increment(x,y)
+d_x = [];
+d_y = [];
+for i = 1:length(x)-1
+    for j = i+1:length(x)
+        deltaX = x(i) - x(j);
+        deltaY = y(i) - y(j);
+        d_x = [d_x; deltaX];
+        d_y = [d_y; deltaY];
+    end
+end
+end
+
+function dcor = distcor(x,y,type)
+% This function calculates the distance correlation between x and y.
+% Reference: http://en.wikipedia.org/wiki/Distance_correlation
+% Date: 18 Jan, 2013
+% Author: Shen Liu (shen.liu@hotmail.com.au)
+% Check if the sizes of the inputs match
+
+if size(x,1) ~= size(y,1)
+    error('Inputs must have the same number of rows')
+end
+% Delete rows containing unobserved values
+N = any([isnan(x) isnan(y)],2);
+x(N,:) = [];
+y(N,:) = [];
+% Calculate doubly centered distance matrices for x and y
+a = pdist2(x,x);
+if strcmp(type,'Spearman')
+    a = rank_matrix(a); %Rank matrix
+end
+
+mcol = mean(a);
+mrow = mean(a,2);
+ajbar = ones(size(mrow))*mcol;
+akbar = mrow*ones(size(mcol));
+abar = mean(mean(a))*ones(size(a));
+A = a - ajbar - akbar + abar;
+
+
+b = pdist2(y,y);
+if strcmp(type,'Spearman')
+    b = rank_matrix(b); %Rank matrix
+end
+
+mcol = mean(b);
+mrow = mean(b,2);
+bjbar = ones(size(mrow))*mcol;
+bkbar = mrow*ones(size(mcol));
+bbar = mean(mean(b))*ones(size(b));
+B = b - bjbar - bkbar + bbar;
+
+
+% Calculate squared sample distance covariance and variances
+dcov = sum(sum(A.*B))/(size(mrow,1)^2);
+dvarx = sum(sum(A.*A))/(size(mrow,1)^2);
+dvary = sum(sum(B.*B))/(size(mrow,1)^2);
+% Calculate the distance correlation
+dcor = sqrt(dcov/sqrt(dvarx*dvary));
+end
+
+function rank_x = rank_matrix(x)
+r = sort(x(:));
+rank_x = [];
+for i = 1:size(x,1)
+    for j = 1:size(x,2)
+        idx = find(r == x(i,j));
+        if length(idx) == 1
+            rank_x(i,j) = idx;
+        else
+            rank_x(i,j) = sum(idx)/length(idx);
+        end
+    end
+end
+end
