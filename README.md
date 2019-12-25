@@ -1,4 +1,4 @@
-# Signed-distance-correlation
+# Signed distance correlation
 
 ## Folders quick guide
 1. Correlation example: The script corr_example.m is the main script to create the toy example figures.
